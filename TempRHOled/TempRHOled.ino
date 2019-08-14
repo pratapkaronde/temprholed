@@ -61,6 +61,11 @@ uint16_t rh_graph_max = 0;
 
 uint8_t displayScreen = -1;
 
+/**
+ * @brief Write the sensor information to Serial Port 
+ * 
+ * @param dhtsensor Structure containing sensor information 
+ */
 void serialDumpDHTSensor(sensor_t &dhtsensor)
 {
   Serial.println(F("------------------------------------"));
@@ -84,8 +89,45 @@ void serialDumpDHTSensor(sensor_t &dhtsensor)
 }
 
 /**
- * Read graph data from EEPROM
- * TODO: Add a valid data flag 
+ * @brief Dump the contents of sensor data array to serial port 
+ * 
+ */
+void serialDumpArrays()
+{
+  static const char SLOT_LABEL[] = "Slot: ";
+  static const char TEMP_LABEL[] = ", TEMP: ";
+  static const char RH_LABEL[] = ", RH: ";
+
+  if (filledSize == GRAPH_POINTS)
+  {
+    // Array has rolled over
+    for (int slot = array_head; slot < GRAPH_POINTS; slot++)
+    {
+      Serial.print(SLOT_LABEL);
+      Serial.print(slot);
+      Serial.print(TEMP_LABEL);
+      Serial.print(temp_array[slot] / 100.0);
+      Serial.print(RH_LABEL);
+      Serial.println(rh_array[slot] / 100.0);
+    }
+  }
+
+  // Array yet to roll
+  for (int slot = 0; slot < array_head; slot++)
+  {
+    Serial.print(SLOT_LABEL);
+    Serial.print(slot);
+    Serial.print(TEMP_LABEL);
+    Serial.print(temp_array[slot] / 100.0);
+    Serial.print(RH_LABEL);
+    Serial.println(rh_array[slot] / 100.0);
+  }
+}
+
+/**
+ * @brief Read Sensor data stored in the EEPROM 
+ * 
+ * Checks for valid sensor data by looking for a signature flag 
  */
 void readFromEEPROM()
 {
@@ -226,38 +268,16 @@ void saveToEEPROM(bool bCleanup = false)
   }
 }
 
-void serialDumpArrays()
-{
-  static const char SLOT_LABEL[] = "Slot: ";
-  static const char TEMP_LABEL[] = ", TEMP: ";
-  static const char RH_LABEL[] = ", RH: ";
-
-  if (filledSize == GRAPH_POINTS)
-  {
-    // Array has rolled over
-    for (int slot = array_head; slot < GRAPH_POINTS; slot++)
-    {
-      Serial.print(SLOT_LABEL);
-      Serial.print(slot);
-      Serial.print(TEMP_LABEL);
-      Serial.print(temp_array[slot] / 100.0);
-      Serial.print(RH_LABEL);
-      Serial.println(rh_array[slot] / 100.0);
-    }
-  }
-
-  // Array yet to roll
-  for (int slot = 0; slot < array_head; slot++)
-  {
-    Serial.print(SLOT_LABEL);
-    Serial.print(slot);
-    Serial.print(TEMP_LABEL);
-    Serial.print(temp_array[slot] / 100.0);
-    Serial.print(RH_LABEL);
-    Serial.println(rh_array[slot] / 100.0);
-  }
-}
-
+/**
+ * @brief Get the Array Min Max object
+ * 
+ * Scan through the array and find min and max values
+ * TODO: Is there any other faster way to do this? 
+ * 
+ * @param array Source Array to scan 
+ * @param min   Pointer to the variable that will recieve the min value 
+ * @param max   Pointer to the variable that will receive the max value 
+ */
 void getArrayMinMax(const uint16_t *array, uint16_t *min, uint16_t *max)
 {
   static const char comma[] = ", ";
@@ -388,6 +408,12 @@ void drawRHGraphScreen()
   }
 }
 
+/**
+ * @brief Read Temperature and humidity data from the sensor 
+ * 
+ * @param currentTemp Pointer to a variable where the temperature data will be stored 
+ * @param currentRH   Pointer to a variable where the relative humidity data will be stored 
+ */
 void readTempAndHumidity(float *currentTemp, float *currentRH)
 {
   static float temp_average = 0;
@@ -459,6 +485,12 @@ void readTempAndHumidity(float *currentTemp, float *currentRH)
   }
 }
 
+/**
+ * @brief Atmega setup code
+ * 
+ * This code runs first when power is applied to the circuit. It configures the sensor and the OLED display 
+ * 
+ */
 void setup()
 {
   Serial.begin(115200);
@@ -510,6 +542,10 @@ unsigned long lastScreenRollMS = 0;
 float currrenTemp = 0;
 float currentRH = 0;
 
+/**
+ * @brief Atmega loop code. This loop runs contineously till the circuit has power 
+ * 
+ */
 void loop()
 {
   unsigned long newMS = 0;
