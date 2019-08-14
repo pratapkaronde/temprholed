@@ -1,23 +1,13 @@
-
-/**************************************************************************
-  This is an example for our Monochrome OLEDs based on SSD1306 drivers
-
-  Pick one up today in the adafruit shop!
-  ------> http://www.adafruit.com/category/63_98
-
-  This example is for a 128x32 pixel display using I2C to communicate
-  3 pins are required to interface (two I2C and one reset).
-
-  Adafruit invests time and resources providing this open
-  source code, please support Adafruit and open-source
-  hardware by purchasing products from Adafruit!
-
-  Written by Limor Fried/Ladyada for Adafruit Industries,
-  with contributions from the open source community.
-  BSD license, check license.txt for more information
-  All text above, and the splash displayScreen below must be
-  included in any redistribution.
- **************************************************************************/
+/**
+ * @file TempRHOled.ino
+ * @author Pratap Karonde (pratap.karonde@gmail.com)
+ * @brief  Atmega 328P Program to read temperature and humidity data from DHT sensor and display it on an OLED display 
+ * @version 0.1
+ * @date 2019-08-13
+ * 
+ * @copyright Copyright (c) 2019
+ * 
+ */
 #define ARDUINO 10809
 
 #include <Adafruit_Sensor.h>
@@ -148,7 +138,7 @@ void readFromEEPROM()
     for (int slot = 0; slot < GRAPH_POINTS; slot++)
       temp_array[slot] = 0;
   }
-  // Compute Temp Min and Max
+  
   getArrayMinMax(temp_array, &temp_graph_min, &temp_graph_max);
 
   if (temp_graph_max == 0)
@@ -169,6 +159,11 @@ void readFromEEPROM()
   rh_graph_max += range_adjust;
 }
 
+/**
+ * @brief Save temperature and humidty data into EEPROM 
+ * 
+ * @param bCleanup If set to true, it will initialize the EEPROM content. Use this on a new chip
+ */
 void saveToEEPROM(bool bCleanup = false)
 {
   unsigned eepromAddress = 0;
@@ -511,6 +506,7 @@ void setup()
 unsigned long lastMeasureMS = 0;
 unsigned long lastDisplayMS = 0;
 unsigned long lastScreenRollMS = 0;
+
 float currrenTemp = 0;
 float currentRH = 0;
 
