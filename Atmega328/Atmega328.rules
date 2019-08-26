@@ -11,7 +11,7 @@
     (via_costs 50)
     (plane_via_costs 5)
     (start_ripup_costs 100)
-    (start_pass_no 1448)
+    (start_pass_no 1245)
     (layer_rule F.Cu
       (active on)
       (preferred_direction horizontal)
@@ -40,11 +40,35 @@
     )
     (attach off)
   )
+  (padstack "Via[0-1]_2032:889_um"
+    (shape
+      (circle F.Cu 2032.0 0.0 0.0)
+    )
+    (shape
+      (circle B.Cu 2032.0 0.0 0.0)
+    )
+    (attach off)
+  )
+  (via 
+    "Via[0-1]_2032:889_um" "Via[0-1]_2032:889_um" default
+  )
+  (via 
+    "Via[0-1]_2032:889_um-kicad_default" "Via[0-1]_2032:889_um" "kicad_default"
+  )
+  (via 
+    "Via[0-1]_1371.6:660.4_um-Power" "Via[0-1]_1371.6:660.4_um" Power
+  )
+  (via 
+    "Via[0-1]_2032:889_um-Power" "Via[0-1]_2032:889_um" Power
+  )
   (via 
     "Via[0-1]_1371.6:660.4_um" "Via[0-1]_1371.6:660.4_um" default
   )
   (via 
     "Via[0-1]_1371.6:660.4_um-kicad_default" "Via[0-1]_1371.6:660.4_um" "kicad_default"
+  )
+  (via_rule
+    Power "Via[0-1]_2032:889_um-Power"
   )
   (via_rule
     default "Via[0-1]_1371.6:660.4_um"
@@ -63,7 +87,7 @@
     )
   )
   (class "kicad_default"
-    +5V GND "Net-(D1-Pad2)" /MISO /SCK "Net-(D3-Pad2)" "Net-(D4-Pad2)" "Net-(R4-Pad1)"
+    GND +5V "Net-(D1-Pad2)" /MISO /SCK "Net-(D3-Pad2)" "Net-(D4-Pad2)" "Net-(R4-Pad1)"
     /RXLED /TXLED "Net-(C3-Pad1)" /XTAL1 /XTAL2 "Net-(D2-Pad1)" "Net-(D5-Pad1)" /SDA
     /SCL "Net-(R1-Pad1)" "Net-(R2-Pad1)" /RESET "/ARD_2" /MOSI "/ARD_3" "/ARD_4"
     "/ARD_5" "/ARD_6" "/ARD_7" "/ARD_8" "/ARD_9" "/ARD_10" "/ARD_14" "/ARD_15"
@@ -72,6 +96,16 @@
     (via_rule kicad_default)
     (rule
       (width 304.8)
+    )
+    (circuit 
+      (use_layer F.Cu B.Cu)
+    )
+  )
+  (class Power
+    (clearance_class Power)
+    (via_rule Power)
+    (rule
+      (width 508.0)
     )
     (circuit 
       (use_layer F.Cu B.Cu)
