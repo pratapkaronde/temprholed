@@ -1,7 +1,7 @@
 (export (version D)
   (design
     (source /home/pratap/Projects/temprholed/Atmega328/Atmega328.sch)
-    (date "Mon 26 Aug 2019 04:49:06 PM CDT")
+    (date "Mon 26 Aug 2019 05:17:31 PM CDT")
     (tool "Eeschema 5.1.4-e60b266~84~ubuntu18.04.1")
     (sheet (number 1) (name /) (tstamps /)
       (title_block
@@ -185,7 +185,7 @@
       (tstamp 5D7417DD))
     (comp (ref D1)
       (value 1N5817)
-      (footprint Diode_THT:D_DO-41_SOD81_P10.16mm_Horizontal)
+      (footprint Diode_THT:D_DO-34_SOD68_P7.62mm_Horizontal)
       (datasheet http://www.vishay.com/docs/88525/1n5817.pdf)
       (libsource (lib Diode) (part 1N5817) (description "20V 1A Schottky Barrier Rectifier Diode, DO-41"))
       (sheetpath (names /) (tstamps /))

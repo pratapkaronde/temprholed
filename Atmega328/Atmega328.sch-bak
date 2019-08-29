@@ -403,7 +403,7 @@ U 1 1 5D56A332
 P 1900 2550
 F 0 "U1" H 1900 2917 50  0000 C CNN
 F 1 "LM358" H 1900 2826 50  0000 C CNN
-F 2 "Package_SO:SO-8_5.3x6.2mm_P1.27mm" H 1900 2550 50  0001 C CNN
+F 2 "Package_SO:SOIC-8_3.9x4.9mm_P1.27mm" H 1900 2550 50  0001 C CNN
 F 3 "http://www.ti.com/lit/ds/symlink/lm2904-n.pdf" H 1900 2550 50  0001 C CNN
 	1    1900 2550
 	1    0    0    -1  
@@ -414,7 +414,7 @@ U 3 1 5D56F099
 P 1150 3100
 F 0 "U1" H 1108 3146 50  0000 L CNN
 F 1 "LM358" H 1108 3055 50  0000 L CNN
-F 2 "Package_SO:SO-8_5.3x6.2mm_P1.27mm" H 1150 3100 50  0001 C CNN
+F 2 "Package_SO:SOIC-8_3.9x4.9mm_P1.27mm" H 1150 3100 50  0001 C CNN
 F 3 "http://www.ti.com/lit/ds/symlink/lm2904-n.pdf" H 1150 3100 50  0001 C CNN
 	3    1150 3100
 	1    0    0    -1  
@@ -497,7 +497,7 @@ U 3 1 5D5B74D6
 P 1150 4550
 F 0 "U2" H 1108 4596 50  0000 L CNN
 F 1 "LM358" H 1108 4505 50  0000 L CNN
-F 2 "Package_SO:SO-8_5.3x6.2mm_P1.27mm" H 1150 4550 50  0001 C CNN
+F 2 "Package_SO:SOIC-8_3.9x4.9mm_P1.27mm" H 1150 4550 50  0001 C CNN
 F 3 "http://www.ti.com/lit/ds/symlink/lm2904-n.pdf" H 1150 4550 50  0001 C CNN
 	3    1150 4550
 	1    0    0    -1  
@@ -641,7 +641,7 @@ U 1 1 5D5B1388
 P 2150 4850
 F 0 "U2" H 2150 5217 50  0000 C CNN
 F 1 "LM358" H 2150 5126 50  0000 C CNN
-F 2 "Package_SO:SO-8_5.3x6.2mm_P1.27mm" H 2150 4850 50  0001 C CNN
+F 2 "Package_SO:SOIC-8_3.9x4.9mm_P1.27mm" H 2150 4850 50  0001 C CNN
 F 3 "http://www.ti.com/lit/ds/symlink/lm2904-n.pdf" H 2150 4850 50  0001 C CNN
 	1    2150 4850
 	1    0    0    -1  
@@ -673,7 +673,7 @@ U 2 1 5D7417E3
 P 3800 4900
 F 0 "U1" H 3800 5267 50  0000 C CNN
 F 1 "LM358" H 3800 5176 50  0000 C CNN
-F 2 "Package_SO:SO-8_5.3x6.2mm_P1.27mm" H 3800 4900 50  0001 C CNN
+F 2 "Package_SO:SOIC-8_3.9x4.9mm_P1.27mm" H 3800 4900 50  0001 C CNN
 F 3 "http://www.ti.com/lit/ds/symlink/lm2904-n.pdf" H 3800 4900 50  0001 C CNN
 	2    3800 4900
 	1    0    0    -1  

@@ -11,25 +11,29 @@
     (via_costs 50)
     (plane_via_costs 5)
     (start_ripup_costs 100)
-    (start_pass_no 1245)
+    (start_pass_no 1000)
     (layer_rule F.Cu
-      (active on)
-      (preferred_direction horizontal)
-      (preferred_direction_trace_costs 1.0)
-      (against_preferred_direction_trace_costs 2.4)
-    )
-    (layer_rule B.Cu
       (active on)
       (preferred_direction vertical)
       (preferred_direction_trace_costs 1.0)
-      (against_preferred_direction_trace_costs 1.7)
+      (against_preferred_direction_trace_costs 2.3)
+    )
+    (layer_rule B.Cu
+      (active on)
+      (preferred_direction horizontal)
+      (preferred_direction_trace_costs 1.0)
+      (against_preferred_direction_trace_costs 1.8)
     )
   )
   (rule
     (width 304.8)
     (clear 203.4)
     (clear 152.4 (type smd_to_turn_gap))
+    (clear 254.2 (type default_Power))
     (clear 50.8 (type smd_smd))
+    (clear 254.2 (type smd_Power))
+    (clear 254.2 (type "kicad_default"_Power))
+    (clear 254.2 (type Power_Power))
   )
   (padstack "Via[0-1]_1371.6:660.4_um"
     (shape
@@ -50,7 +54,13 @@
     (attach off)
   )
   (via 
+    "Via[0-1]_1371.6:660.4_um" "Via[0-1]_1371.6:660.4_um" default
+  )
+  (via 
     "Via[0-1]_2032:889_um" "Via[0-1]_2032:889_um" default
+  )
+  (via 
+    "Via[0-1]_1371.6:660.4_um-kicad_default" "Via[0-1]_1371.6:660.4_um" "kicad_default"
   )
   (via 
     "Via[0-1]_2032:889_um-kicad_default" "Via[0-1]_2032:889_um" "kicad_default"
@@ -61,20 +71,14 @@
   (via 
     "Via[0-1]_2032:889_um-Power" "Via[0-1]_2032:889_um" Power
   )
-  (via 
-    "Via[0-1]_1371.6:660.4_um" "Via[0-1]_1371.6:660.4_um" default
-  )
-  (via 
-    "Via[0-1]_1371.6:660.4_um-kicad_default" "Via[0-1]_1371.6:660.4_um" "kicad_default"
-  )
-  (via_rule
-    Power "Via[0-1]_2032:889_um-Power"
-  )
   (via_rule
     default "Via[0-1]_1371.6:660.4_um"
   )
   (via_rule
     "kicad_default" "Via[0-1]_1371.6:660.4_um-kicad_default"
+  )
+  (via_rule
+    Power "Via[0-1]_2032:889_um-Power"
   )
   (class default
     (clearance_class default)
@@ -87,11 +91,10 @@
     )
   )
   (class "kicad_default"
-    GND +5V "Net-(D1-Pad2)" /MISO /SCK "Net-(D3-Pad2)" "Net-(D4-Pad2)" "Net-(R4-Pad1)"
-    /RXLED /TXLED "Net-(C3-Pad1)" /XTAL1 /XTAL2 "Net-(D2-Pad1)" "Net-(D5-Pad1)" /SDA
-    /SCL "Net-(R1-Pad1)" "Net-(R2-Pad1)" /RESET "/ARD_2" /MOSI "/ARD_3" "/ARD_4"
-    "/ARD_5" "/ARD_6" "/ARD_7" "/ARD_8" "/ARD_9" "/ARD_10" "/ARD_14" "/ARD_15"
-    "/ARD_16" "/ARD_17"
+    "Net-(D1-Pad2)" /MISO /SCK "Net-(D3-Pad2)" "Net-(D4-Pad2)" "Net-(R4-Pad1)" /RXLED /TXLED
+    "Net-(C3-Pad1)" /XTAL1 /XTAL2 "Net-(D2-Pad1)" "Net-(D5-Pad1)" /SDA /SCL "Net-(R1-Pad1)"
+    "Net-(R2-Pad1)" /RESET "/ARD_2" /MOSI "/ARD_3" "/ARD_4" "/ARD_5" "/ARD_6"
+    "/ARD_7" "/ARD_8" "/ARD_9" "/ARD_10" "/ARD_14" "/ARD_15" "/ARD_16" "/ARD_17"
     (clearance_class "kicad_default")
     (via_rule kicad_default)
     (rule
@@ -102,6 +105,7 @@
     )
   )
   (class Power
+    +5V GND
     (clearance_class Power)
     (via_rule Power)
     (rule
