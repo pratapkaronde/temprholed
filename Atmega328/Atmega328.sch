@@ -791,12 +791,6 @@ Connection ~ 10400 6000
 Wire Wire Line
 	8950 2750 8700 2750
 Wire Notes Line
-	3150 2100 3150 3800
-Wire Notes Line
-	3150 3800 4650 3800
-Wire Notes Line
-	4650 3800 4650 5350
-Wire Notes Line
 	4650 5350 550  5350
 Wire Notes Line
 	550  5350 550  2100
@@ -1110,4 +1104,41 @@ Wire Wire Line
 	10250 4300 10250 4200
 Wire Wire Line
 	10250 4200 10300 4200
+$Comp
+L Amplifier_Operational:LM358 U2
+U 2 1 5D7B803A
+P 3830 3100
+F 0 "U2" H 3830 3467 50  0000 C CNN
+F 1 "LM358" H 3830 3376 50  0000 C CNN
+F 2 "" H 3830 3100 50  0001 C CNN
+F 3 "http://www.ti.com/lit/ds/symlink/lm2904-n.pdf" H 3830 3100 50  0001 C CNN
+	2    3830 3100
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3530 3000 3360 3000
+Wire Wire Line
+	3360 3000 3360 3200
+Wire Wire Line
+	3530 3200 3360 3200
+Connection ~ 3360 3200
+Wire Wire Line
+	3360 3200 3360 3440
+$Comp
+L power:GND #PWR024
+U 1 1 5D7D0E9D
+P 3360 3440
+F 0 "#PWR024" H 3360 3190 50  0001 C CNN
+F 1 "GND" H 3365 3267 50  0000 C CNN
+F 2 "" H 3360 3440 50  0001 C CNN
+F 3 "" H 3360 3440 50  0001 C CNN
+	1    3360 3440
+	1    0    0    -1  
+$EndComp
+Wire Notes Line
+	3150 2100 3150 2660
+Wire Notes Line
+	3150 2660 4650 2660
+Wire Notes Line
+	4650 2660 4650 5350
 $EndSCHEMATC

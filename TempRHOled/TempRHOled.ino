@@ -42,6 +42,9 @@
 
 #define EEPROM_SIGNATURE (uint16_t)0xFAFBFCFD
 
+#define DATA_MULTIPLIER 100.0f
+#define DEBUG 1
+
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 DHT_Unified dht(DHTPIN, DHTTYPE);
 
@@ -68,6 +71,7 @@ uint8_t displayScreen = -1;
  */
 void serialDumpDHTSensor(sensor_t &dhtsensor)
 {
+#ifdef DEBUG 
   Serial.println(F("------------------------------------"));
   Serial.println(F("Temperature Sensor"));
   Serial.print(F("Sensor Type: "));
@@ -86,6 +90,32 @@ void serialDumpDHTSensor(sensor_t &dhtsensor)
   Serial.print(dhtsensor.resolution);
   Serial.println(F("°C"));
   Serial.println(F("------------------------------------"));
+#endif 
+}
+
+void displayArraySlotData (int slot, uint16_t temp, uint16_t rh)
+{
+
+#ifdef DEBUG
+        display.clearDisplay();
+
+        display.setCursor(0, 0); // Start at top-left corner
+        display.print(F("Slot "));  
+        display.print(slot);
+
+        display.setCursor(0, 10); // Start at top-left corner
+        display.print(F("Temp "));  
+        display.print(temp);
+
+        display.setCursor(0, 20); // Start at top-left corner
+        display.print(F("RH   "));  
+        display.print(rh);
+
+        delay(1000);
+
+        display.display();
+#endif 
+
 }
 
 /**
@@ -94,6 +124,7 @@ void serialDumpDHTSensor(sensor_t &dhtsensor)
  */
 void serialDumpArrays()
 {
+#ifdef DEBUG 
   static const char SLOT_LABEL[] = "Slot: ";
   static const char TEMP_LABEL[] = ", TEMP: ";
   static const char RH_LABEL[] = ", RH: ";
@@ -106,9 +137,9 @@ void serialDumpArrays()
       Serial.print(SLOT_LABEL);
       Serial.print(slot);
       Serial.print(TEMP_LABEL);
-      Serial.print(temp_array[slot] / 100.0);
+      Serial.print(temp_array[slot] / DATA_MULTIPLIER);
       Serial.print(RH_LABEL);
-      Serial.println(rh_array[slot] / 100.0);
+      Serial.println(rh_array[slot] / DATA_MULTIPLIER);
     }
   }
 
@@ -118,10 +149,11 @@ void serialDumpArrays()
     Serial.print(SLOT_LABEL);
     Serial.print(slot);
     Serial.print(TEMP_LABEL);
-    Serial.print(temp_array[slot] / 100.0);
+    Serial.print(temp_array[slot] / DATA_MULTIPLIER);
     Serial.print(RH_LABEL);
-    Serial.println(rh_array[slot] / 100.0);
+    Serial.println(rh_array[slot] / DATA_MULTIPLIER);
   }
+#endif 
 }
 
 /**
@@ -133,7 +165,17 @@ void readFromEEPROM()
 {
   unsigned eepromAddress = 0;
 
+#ifdef DEBUG
   Serial.println(F("Reading from EEPROM"));
+
+  display.clearDisplay();
+  
+  display.setCursor(0, 0); // Start at top-left corner
+  display.print(F("Reading EEPROM"));  
+
+  display.display();
+  delay (1000);
+#endif 
 
   uint16_t signature = 0;
   EEPROM.get(eepromAddress, signature);
@@ -142,16 +184,36 @@ void readFromEEPROM()
 
   if (signature == EEPROM_SIGNATURE)
   {
+    eepromAddress += sizeof(EEPROM_SIGNATURE);
     EEPROM.get(eepromAddress, filledSize);
     eepromAddress += sizeof(filledSize);
 
     if (filledSize >= GRAPH_POINTS)
-      filledSize = 0;
+      filledSize = GRAPH_POINTS;
 
     Serial.println(filledSize);
   }
+#ifdef DEBUG
+  else
+  {
+    display.clearDisplay();
+    display.setCursor(0, 0); // Start at top-left corner
+    display.print(F("Invalid Signature "));  
+    display.print (signature);
+    delay(5000);
+  }
+#endif     
 
-  if (filledSize > 0)
+#ifdef DEBUG
+  display.clearDisplay();
+  display.setCursor(0, 0); // Start at top-left corner
+  display.print(F("Stored Slots: "));  
+  display.print (filledSize);
+  display.display();
+  delay (5000);
+#endif 
+
+  if (filledSize)
   {
     // Array yet to roll
     for (int slot = 0; slot < filledSize; slot++)
@@ -166,38 +228,120 @@ void readFromEEPROM()
         EEPROM.get(eepromAddress, rh_array[slot]);
         eepromAddress += sizeof(rh_array[slot]);
         Serial.println(rh_array[slot]);
+
+        displayArraySlotData (slot, temp_array[slot], rh_array[slot]);
       }
       else
       {
+#ifdef DEBUG
         Serial.print(F("EEPROM overflow: "));
         Serial.println(EEPROM.length());
+        display.clearDisplay();
+        display.setCursor(0, 0); // Start at top-left corner
+        display.print(F("Overflow "));  
+        display.print(EEPROM.length());
+        display.display();
+        delay (5000);
+#endif         
         break;
       }
     }
   }
   else
   {
+#ifdef DEBUG
+        display.clearDisplay();
+        display.setCursor(0, 0); // Start at top-left corner
+        display.print(F("No data in EEPROM"));  
+        display.display();
+        delay (5000);
+#endif         
+
     for (int slot = 0; slot < GRAPH_POINTS; slot++)
+    {
       temp_array[slot] = 0;
+      rh_array[slot] = 0;
+    }
   }
-  
+
+  array_head = filledSize;
   getArrayMinMax(temp_array, &temp_graph_min, &temp_graph_max);
 
+#ifdef DEBUG
+  display.clearDisplay();
+
+  display.setCursor(0, 0); // Start at top-left corner
+  display.print(F("Temp Max  "));  
+  display.print(temp_graph_max);
+
+  display.setCursor(0, 10); // Start at top-left corner
+  display.print(F("Temp Min  "));  
+  display.print(temp_graph_min);
+  display.display();
+#endif 
+
   if (temp_graph_max == 0)
-    temp_graph_max = 50;
+    temp_graph_max = 50*DATA_MULTIPLIER;
+
+  if (temp_graph_min == 0)
+    temp_graph_min = temp_graph_max;
 
   int range_adjust = (temp_graph_max - temp_graph_min) / 10.0;
-  temp_graph_min -= range_adjust;
+#ifdef DEBUG
+
+        display.setCursor(0, 20); // Start at top-left corner
+        display.print(F("Range Adj "));  
+        display.print(range_adjust);
+
+        display.display();
+        delay (5000);
+#endif         
+
+  if (temp_graph_max > range_adjust)
+    temp_graph_min -= range_adjust;
+  else
+      temp_graph_min = 0;
+    
   temp_graph_max += range_adjust;
 
   // Compute RH Min and Max
   getArrayMinMax(rh_array, &rh_graph_min, &rh_graph_max);
+#ifdef DEBUG
+        display.clearDisplay();
+
+        display.setCursor(0, 0); // Start at top-left corner
+        display.print(F("RH Max    "));  
+        display.print(rh_graph_max);
+
+        display.setCursor(0, 10); // Start at top-left corner
+        display.print(F("RH Min    "));  
+        display.print(rh_graph_min);
+#endif 
 
   if (rh_graph_max == 0)
-    rh_graph_max = 100;
+    rh_graph_max = 100*DATA_MULTIPLIER;
+
+  if (rh_graph_min == 0)
+    rh_graph_min == rh_graph_max;
 
   range_adjust = (rh_graph_max - rh_graph_min) / 10.0;
-  rh_graph_min -= range_adjust;
+
+
+#ifdef DEBUG
+
+        display.setCursor(0, 20); // Start at top-left corner
+        display.print(F("Range Adj "));  
+        display.print(range_adjust);
+
+        display.display();
+        delay (5000);
+#endif  
+
+  if (rh_graph_min > range_adjust)
+    rh_graph_min -= range_adjust;
+  else
+    rh_graph_min = 0;
+
   rh_graph_max += range_adjust;
 }
 
@@ -223,7 +367,7 @@ void saveToEEPROM(bool bCleanup = false)
 
   Serial.println(filledSize);
 
-  if (filledSize > 0)
+  if (filledSize)
   {
     if (filledSize == GRAPH_POINTS)
     {
@@ -237,6 +381,7 @@ void saveToEEPROM(bool bCleanup = false)
 
           EEPROM.put(eepromAddress, rh_array[slot]);
           eepromAddress += sizeof(rh_array[slot]);
+          displayArraySlotData (slot, temp_array[slot], rh_array[slot]);          
         }
         else
         {
@@ -257,6 +402,7 @@ void saveToEEPROM(bool bCleanup = false)
 
         EEPROM.put(eepromAddress, rh_array[slot]);
         eepromAddress += sizeof(rh_array[slot]);
+        displayArraySlotData (slot, temp_array[slot], rh_array[slot]);
       }
       else
       {
@@ -344,7 +490,7 @@ void drawScreen0(float currrenTemp, float currentRH)
   display.print(currentRH);
   display.print(F("%"));
 
-  int barWidth = int((currentRH * 124.0) / 100.0);
+  int barWidth = int((currentRH * 124.0) / DATA_MULTIPLIER);
   display.fillRect(2, 22, barWidth, 8, WHITE);
 
   // Draw RH Graph
@@ -358,10 +504,10 @@ void drawTempGraphScreen()
   display.setTextWrap(false);
 
   display.setCursor(2, 2);
-  display.print(temp_graph_max / 100.0f);
+  display.print(temp_graph_max / DATA_MULTIPLIER);
 
   display.setCursor(100, 23);
-  display.print(temp_graph_min / 100.0f);
+  display.print(temp_graph_min / DATA_MULTIPLIER);
 
   display.setCursor(120, 2);
   display.print(F("C"));
@@ -385,13 +531,13 @@ void drawRHGraphScreen()
   display.drawRect(0, 0, display.width(), display.height(), WHITE);
 
   display.setCursor(2, 2);
-  display.print(rh_graph_max / 100.0f);
+  display.print(rh_graph_max / DATA_MULTIPLIER);
 
   display.setCursor(120, 2);
   display.print(F("%"));
 
   display.setCursor(100, 23);
-  display.print(rh_graph_min / 100.0f);
+  display.print(rh_graph_min / DATA_MULTIPLIER);
 
   display.setTextWrap(false);
 
@@ -495,6 +641,14 @@ void setup()
 {
   Serial.begin(115200);
   Serial.println(F("Starting.."));
+
+  pinMode ( 0, OUTPUT );
+  pinMode ( 1, OUTPUT );
+  pinMode (13, OUTPUT );
+
+  digitalWrite (0, HIGH);
+  digitalWrite (1, HIGH);
+  digitalWrite (13, LOW);
 
   // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
   if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C))
