@@ -1,13 +1,13 @@
 /**
- * @file TempRHOled.ino
- * @author Pratap Karonde (pratap.karonde@gmail.com)
- * @brief  Atmega 328P Program to read temperature and humidity data from DHT sensor and display it on an OLED display 
- * @version 0.1
- * @date 2019-08-13
- * 
- * @copyright Copyright (c) 2019
- * 
- */
+   @file TempRHOled.ino
+   @author Pratap Karonde (pratap.karonde@gmail.com)
+   @brief  Atmega 328P Program to read temperature and humidity data from DHT sensor and display it on an OLED display
+   @version 0.1
+   @date 2019-08-13
+
+   @copyright Copyright (c) 2019
+
+*/
 #define ARDUINO 10809
 
 #include <Adafruit_Sensor.h>
@@ -19,59 +19,56 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <EEPROM.h>
+#include <assert.h>
 
-#define SCREEN_WIDTH 128 // OLED display width, in pixels
-#define SCREEN_HEIGHT 32 // OLED display height, in pixels
 
-// Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
-#define OLED_RESET -1 // Reset pin # (or -1 if sharing Arduino reset pin)
-#define NUMFLAKES 10  // Number of snowflakes in the animation example
-#define LOGO_HEIGHT 16
-#define LOGO_WIDTH 16
-
-#define DHTPIN 2        // Digital pin connected to the DHT sensor
-#define DHTTYPE DHT22   // DHT 22 (AM2302)
-#define GRAPH_POINTS 30 // Number of data points on gtaph
-
-#define GRAPH_DURTION_MINS 60 // Minutes to plot on the graph
+#define GRAPH_POINTS 100 // Number of data points on gtaph
+#define GRAPH_DURTION_MINS 24*60 // Minutes to plot on the graph
 #define GRAPH_SAMPLE_PERIOD ((float)GRAPH_DURTION_MINS) / (float)GRAPH_POINTS
 #define FACTOR 2 // Used for calculation of running average
 #define REFRESH_DISPLAY_MS 500
-// Repaint every x ms
 #define ROLL_SCREEN_MS 5000
-
+#define GRAPH_ADJUST_PERCENT 15 // Keep graph from touching the top and bottom axis by adding some empty space 
 #define EEPROM_SIGNATURE (uint16_t)0xFAFBFCFD
+#define DATA_MULTIPLIER 100.0f // Data is stored in the EEPROM with this multiplier 
+//#define DEBUG 1
 
-#define DATA_MULTIPLIER 100.0f
-#define DEBUG 1
-
+// Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 32 // OLED display height, in pixels
+#define OLED_RESET -1 // Reset pin # (or -1 if sharing Arduino reset pin)
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+// Declaration for Temp / RH Sensor 
+#define DHTPIN 2        // Digital pin connected to the DHT sensor
+#define DHTTYPE DHT22   // DHT 22 (AM2302)
 DHT_Unified dht(DHTPIN, DHTTYPE);
 
 uint32_t measureEveryMS = 1000;
-uint16_t temp_array[GRAPH_POINTS]; // 128 temperature Samples for the graph
-uint16_t rh_array[GRAPH_POINTS];   // 128 humiduty  Samples for the graph
-uint8_t array_head = 0;
-uint8_t filledSize = 0;
+int16_t temp_array[GRAPH_POINTS]; // 128 temperature Samples for the graph
+int16_t rh_array[GRAPH_POINTS];   // 128 humiduty  Samples for the graph
+
+uint8_t arrayTail = 0;
+//#define filledSize (arrayTail+1)
 
 uint32_t samplesToAverage = 0; // How many times to add up the average before putting it in the array?
 uint32_t samplesAveraged = 0;  // How many have we averaged so far?
 
-uint16_t temp_graph_min = 0;
-uint16_t temp_graph_max = 0;
-uint16_t rh_graph_min = 0;
-uint16_t rh_graph_max = 0;
+int16_t temp_graph_min = 0;
+int16_t temp_graph_max = 0;
+int16_t rh_graph_min = 0;
+int16_t rh_graph_max = 0;
 
 uint8_t displayScreen = -1;
 
 /**
- * @brief Write the sensor information to Serial Port 
- * 
- * @param dhtsensor Structure containing sensor information 
- */
+   @brief Write the sensor information to Serial Port
+
+   @param dhtsensor Structure containing sensor information
+*/
 void serialDumpDHTSensor(sensor_t &dhtsensor)
 {
-#ifdef DEBUG 
+#ifdef DEBUG
   Serial.println(F("------------------------------------"));
   Serial.println(F("Temperature Sensor"));
   Serial.print(F("Sensor Type: "));
@@ -90,61 +87,46 @@ void serialDumpDHTSensor(sensor_t &dhtsensor)
   Serial.print(dhtsensor.resolution);
   Serial.println(F("°C"));
   Serial.println(F("------------------------------------"));
-#endif 
+#endif
 }
 
 void displayArraySlotData (int slot, uint16_t temp, uint16_t rh)
 {
 
 #ifdef DEBUG
-        display.clearDisplay();
+  display.clearDisplay();
 
-        display.setCursor(0, 0); // Start at top-left corner
-        display.print(F("Slot "));  
-        display.print(slot);
+  display.setCursor(0, 0); // Start at top-left corner
+  display.print(F("Slot "));
+  display.print(slot);
 
-        display.setCursor(0, 10); // Start at top-left corner
-        display.print(F("Temp "));  
-        display.print(temp);
+  display.setCursor(0, 10); // Start at top-left corner
+  display.print(F("Temp "));
+  display.print(temp);
 
-        display.setCursor(0, 20); // Start at top-left corner
-        display.print(F("RH   "));  
-        display.print(rh);
+  display.setCursor(0, 20); // Start at top-left corner
+  display.print(F("RH   "));
+  display.print(rh);
 
-        delay(1000);
-
-        display.display();
-#endif 
+  display.display();
+  delay(1000);
+#endif
 
 }
 
 /**
- * @brief Dump the contents of sensor data array to serial port 
- * 
- */
+   @brief Dump the contents of sensor data array to serial port
+
+*/
 void serialDumpArrays()
 {
-#ifdef DEBUG 
+#ifdef DEBUG
   static const char SLOT_LABEL[] = "Slot: ";
   static const char TEMP_LABEL[] = ", TEMP: ";
   static const char RH_LABEL[] = ", RH: ";
 
-  if (filledSize == GRAPH_POINTS)
-  {
-    // Array has rolled over
-    for (int slot = array_head; slot < GRAPH_POINTS; slot++)
-    {
-      Serial.print(SLOT_LABEL);
-      Serial.print(slot);
-      Serial.print(TEMP_LABEL);
-      Serial.print(temp_array[slot] / DATA_MULTIPLIER);
-      Serial.print(RH_LABEL);
-      Serial.println(rh_array[slot] / DATA_MULTIPLIER);
-    }
-  }
-
   // Array yet to roll
-  for (int slot = 0; slot < array_head; slot++)
+  for (int slot = 0; slot <= arrayTail; slot++)
   {
     Serial.print(SLOT_LABEL);
     Serial.print(slot);
@@ -153,14 +135,14 @@ void serialDumpArrays()
     Serial.print(RH_LABEL);
     Serial.println(rh_array[slot] / DATA_MULTIPLIER);
   }
-#endif 
+#endif
 }
 
 /**
- * @brief Read Sensor data stored in the EEPROM 
- * 
- * Checks for valid sensor data by looking for a signature flag 
- */
+   @brief Read Sensor data stored in the EEPROM
+
+   Checks for valid sensor data by looking for a signature flag
+*/
 void readFromEEPROM()
 {
   unsigned eepromAddress = 0;
@@ -169,54 +151,53 @@ void readFromEEPROM()
   Serial.println(F("Reading from EEPROM"));
 
   display.clearDisplay();
-  
+
   display.setCursor(0, 0); // Start at top-left corner
-  display.print(F("Reading EEPROM"));  
+  display.print(F("Reading EEPROM"));
 
   display.display();
   delay (1000);
-#endif 
+#endif
 
   uint16_t signature = 0;
   EEPROM.get(eepromAddress, signature);
 
-  filledSize = 0;
+  arrayTail = 0;
 
   if (signature == EEPROM_SIGNATURE)
   {
     eepromAddress += sizeof(EEPROM_SIGNATURE);
-    EEPROM.get(eepromAddress, filledSize);
-    eepromAddress += sizeof(filledSize);
+    EEPROM.get(eepromAddress, arrayTail);
+    eepromAddress += sizeof(arrayTail);
 
-    if (filledSize >= GRAPH_POINTS)
-      filledSize = GRAPH_POINTS;
+    if (arrayTail >= GRAPH_POINTS)
+      arrayTail = GRAPH_POINTS - 1;
 
-    Serial.println(filledSize);
+    Serial.println(arrayTail);
   }
 #ifdef DEBUG
   else
   {
     display.clearDisplay();
     display.setCursor(0, 0); // Start at top-left corner
-    display.print(F("Invalid Signature "));  
+    display.print(F("Invalid Signature "));
     display.print (signature);
     delay(5000);
   }
-#endif     
+#endif
 
 #ifdef DEBUG
   display.clearDisplay();
   display.setCursor(0, 0); // Start at top-left corner
-  display.print(F("Stored Slots: "));  
-  display.print (filledSize);
+  display.print(F("Filled Size: "));
+  display.print (arrayTail);
   display.display();
   delay (5000);
-#endif 
+#endif
 
-  if (filledSize)
+  if (arrayTail)
   {
-    // Array yet to roll
-    for (int slot = 0; slot < filledSize; slot++)
+    for (int slot = 0; slot < arrayTail; slot++)
     {
       Serial.println(slot);
       if (eepromAddress < EEPROM.length())
@@ -238,11 +219,11 @@ void readFromEEPROM()
         Serial.println(EEPROM.length());
         display.clearDisplay();
         display.setCursor(0, 0); // Start at top-left corner
-        display.print(F("Overflow "));  
+        display.print(F("Overflow "));
         display.print(EEPROM.length());
         display.display();
         delay (5000);
-#endif         
+#endif
         break;
       }
     }
@@ -250,12 +231,12 @@ void readFromEEPROM()
   else
   {
 #ifdef DEBUG
-        display.clearDisplay();
-        display.setCursor(0, 0); // Start at top-left corner
-        display.print(F("No data in EEPROM"));  
-        display.display();
-        delay (5000);
-#endif         
+    display.clearDisplay();
+    display.setCursor(0, 0); // Start at top-left corner
+    display.print(F("No data in EEPROM"));
+    display.display();
+    delay (5000);
+#endif
 
     for (int slot = 0; slot < GRAPH_POINTS; slot++)
     {
@@ -264,167 +245,92 @@ void readFromEEPROM()
     }
   }
 
-  array_head = filledSize;
-  getArrayMinMax(temp_array, &temp_graph_min, &temp_graph_max);
+  getArrayMinMax(temp_array, arrayTail, GRAPH_ADJUST_PERCENT, 50 * DATA_MULTIPLIER,  &temp_graph_min, &temp_graph_max);
 
 #ifdef DEBUG
   display.clearDisplay();
 
   display.setCursor(0, 0); // Start at top-left corner
-  display.print(F("Temp Max  "));  
+  display.print(F("Temp Max  "));
   display.print(temp_graph_max);
 
   display.setCursor(0, 10); // Start at top-left corner
-  display.print(F("Temp Min  "));  
+  display.print(F("Temp Min  "));
   display.print(temp_graph_min);
   display.display();
-#endif 
-
-  if (temp_graph_max == 0)
-    temp_graph_max = 50*DATA_MULTIPLIER;
-
-  if (temp_graph_min == 0)
-    temp_graph_min = temp_graph_max;
-
-  int range_adjust = (temp_graph_max - temp_graph_min) / 10.0;
-#ifdef DEBUG
-
-        display.setCursor(0, 20); // Start at top-left corner
-        display.print(F("Range Adj "));  
-        display.print(range_adjust);
-
-        display.display();
-        delay (5000);
-#endif         
-
-  if (temp_graph_max > range_adjust)
-    temp_graph_min -= range_adjust;
-  else
-      temp_graph_min = 0;
-    
-  temp_graph_max += range_adjust;
+  delay(3000);
+#endif
 
   // Compute RH Min and Max
-  getArrayMinMax(rh_array, &rh_graph_min, &rh_graph_max);
-#ifdef DEBUG
-        display.clearDisplay();
-
-        display.setCursor(0, 0); // Start at top-left corner
-        display.print(F("RH Max    "));  
-        display.print(rh_graph_max);
-
-        display.setCursor(0, 10); // Start at top-left corner
-        display.print(F("RH Min    "));  
-        display.print(rh_graph_min);
-#endif 
-
-  if (rh_graph_max == 0)
-    rh_graph_max = 100*DATA_MULTIPLIER;
-
-  if (rh_graph_min == 0)
-    rh_graph_min == rh_graph_max;
-
-  range_adjust = (rh_graph_max - rh_graph_min) / 10.0;
-
+  getArrayMinMax(rh_array, arrayTail, GRAPH_ADJUST_PERCENT, 100 * DATA_MULTIPLIER,  &rh_graph_min, &rh_graph_max);
 
 #ifdef DEBUG
+  display.clearDisplay();
 
-        display.setCursor(0, 20); // Start at top-left corner
-        display.print(F("Range Adj "));  
-        display.print(range_adjust);
+  display.setCursor(0, 0); // Start at top-left corner
+  display.print(F("RH Max    "));
+  display.print(rh_graph_max);
 
-        display.display();
-        delay (5000);
-#endif  
+  display.setCursor(0, 10); // Start at top-left corner
+  display.print(F("RH Min    "));
+  display.print(rh_graph_min);
+  delay(3000);
+#endif
 
-  if (rh_graph_min > range_adjust)
-    rh_graph_min -= range_adjust;
-  else
-    rh_graph_min = 0;
-
-  rh_graph_max += range_adjust;
 }
 
 /**
- * @brief Save temperature and humidty data into EEPROM 
- * 
- * @param bCleanup If set to true, it will initialize the EEPROM content. Use this on a new chip
- */
+   @brief Save temperature and humidty data into EEPROM
+
+   @param bCleanup If set to true, it will initialize the EEPROM content. Use this on a new chip
+*/
 void saveToEEPROM(bool bCleanup = false)
 {
   unsigned eepromAddress = 0;
 
-  Serial.println(F("Save to EEPROM"));
+  Serial.println(F("Saving to EEPROM"));
 
   if (bCleanup)
-    filledSize = 0;
+    arrayTail = 0;
 
   EEPROM.put(eepromAddress, EEPROM_SIGNATURE);
   eepromAddress += sizeof(EEPROM_SIGNATURE);
 
-  EEPROM.put(eepromAddress, filledSize);
-  eepromAddress += sizeof(filledSize);
+  EEPROM.put(eepromAddress, arrayTail);
+  eepromAddress += sizeof(arrayTail);
 
-  Serial.println(filledSize);
-
-  if (filledSize)
+  for (int slot = 0; slot < arrayTail; slot++)
   {
-    if (filledSize == GRAPH_POINTS)
+    if (eepromAddress < EEPROM.length())
     {
-      // Array has rolled over
-      for (int slot = array_head; slot < GRAPH_POINTS; slot++)
-      {
-        if (eepromAddress < EEPROM.length())
-        {
-          EEPROM.put(eepromAddress, temp_array[slot]);
-          eepromAddress += sizeof(temp_array[slot]);
+      EEPROM.put(eepromAddress, temp_array[slot]);
+      eepromAddress += sizeof(temp_array[slot]);
 
-          EEPROM.put(eepromAddress, rh_array[slot]);
-          eepromAddress += sizeof(rh_array[slot]);
-          displayArraySlotData (slot, temp_array[slot], rh_array[slot]);          
-        }
-        else
-        {
-          Serial.print(F("EEPROM overflow: "));
-          Serial.println(EEPROM.length());
-          break;
-        }
-      }
+      EEPROM.put(eepromAddress, rh_array[slot]);
+      eepromAddress += sizeof(rh_array[slot]);
+
+      displayArraySlotData (slot, temp_array[slot], rh_array[slot]);
     }
-
-    // Array yet to roll
-    for (int slot = 0; slot < array_head; slot++)
+    else
     {
-      if (eepromAddress < EEPROM.length())
-      {
-        EEPROM.put(eepromAddress, temp_array[slot]);
-        eepromAddress += sizeof(temp_array[slot]);
-
-        EEPROM.put(eepromAddress, rh_array[slot]);
-        eepromAddress += sizeof(rh_array[slot]);
-        displayArraySlotData (slot, temp_array[slot], rh_array[slot]);
-      }
-      else
-      {
-        Serial.print(F("EEPROM overflow: "));
-        Serial.println(EEPROM.length());
-        break;
-      }
+      Serial.print(F("EEPROM overflow: "));
+      Serial.println(EEPROM.length());
+      break;
     }
   }
 }
 
 /**
- * @brief Get the Array Min Max object
- * 
- * Scan through the array and find min and max values
- * TODO: Is there any other faster way to do this? 
- * 
- * @param array Source Array to scan 
- * @param min   Pointer to the variable that will recieve the min value 
- * @param max   Pointer to the variable that will receive the max value 
- */
-void getArrayMinMax(const uint16_t *array, uint16_t *min, uint16_t *max)
+   @brief Get the Array Min Max object
+
+   Scan through the array and find min and max values
+   TODO: Is there any other faster way to do this?
+
+   @param array Source Array to scan
+   @param min   Pointer to the variable that will recieve the min value
+   @param max   Pointer to the variable that will receive the max value
+*/
+void getArrayMinMax(const int16_t *array, const uint8_t arraySize, const uint8_t rangeAdjustPercent, const int16_t defaultVal, int16_t *min, int16_t *max)
 {
   static const char comma[] = ", ";
 
@@ -433,30 +339,7 @@ void getArrayMinMax(const uint16_t *array, uint16_t *min, uint16_t *max)
 
   if (array)
   {
-    if (filledSize == GRAPH_POINTS)
-    {
-      // Array has rolled over
-      for (int slot = array_head; slot < GRAPH_POINTS; slot++)
-      {
-        if (slot == array_head)
-          *min = array[slot];
-
-        if (*max < array[slot])
-          *max = array[slot];
-
-        if (*min > array[slot])
-          *min = array[slot];
-
-        Serial.print(array[slot]);
-        Serial.print(comma);
-        Serial.print(*min);
-        Serial.print(comma);
-        Serial.println(*max);
-      }
-    }
-
-    // Array yet to roll
-    for (int slot = 0; slot < array_head; slot++)
+    for (int slot = 0; slot < arraySize; slot++)
     {
       if (*min == 0 && slot == 0)
         *min = array[slot];
@@ -472,6 +355,60 @@ void getArrayMinMax(const uint16_t *array, uint16_t *min, uint16_t *max)
       Serial.print(*min);
       Serial.print(comma);
       Serial.println(*max);
+    }
+
+    if (*min == 0 && *max == 0)
+    {
+      *min = defaultVal;
+      *max = defaultVal;
+    }
+
+#ifdef DEBUG
+    display.clearDisplay();
+
+    display.setCursor(0, 0); // Start at top-left corner
+    display.print(F("Array Min/Max"));
+
+    display.setCursor(0, 10); // Start at top-left corner
+    display.print(F("Min  "));
+    display.print(*min);
+
+    display.setCursor(0, 20); // Start at top-left corner
+    display.print(F("Max  "));
+    display.print(*max);
+
+    display.display();
+    delay(3000);
+#endif
+
+    if (rangeAdjustPercent)
+    {
+      // Adjust min and max values so that all data shows up nicely in the graphs
+
+      int rangeAdjustValue = (*max - *min) / rangeAdjustPercent;
+
+      *min -= rangeAdjustValue;
+      *max += rangeAdjustValue;
+
+#ifdef DEBUG
+      display.clearDisplay();
+
+      display.setCursor(0, 0); // Start at top-left corner
+      display.print(F("RangAdjVal "));
+      display.print(rangeAdjustValue);
+
+      display.setCursor(0, 10); // Start at top-left corner
+      display.print(F("Min  "));
+      display.print(*min);
+
+      display.setCursor(0, 20); // Start at top-left corner
+      display.print(F("Max  "));
+      display.print(*max);
+
+      display.display();
+      delay(3000);
+#endif
+
     }
   }
   else
@@ -515,7 +452,7 @@ void drawTempGraphScreen()
   int last_x = 0;
   int last_y = display.height() / 2;
 
-  for (int dataPoint = 0; dataPoint < min(filledSize, GRAPH_POINTS); dataPoint++)
+  for (int dataPoint = 0; dataPoint < min(arrayTail, GRAPH_POINTS); dataPoint++)
   {
     int x = dataPoint * ((float)(display.width() - 2) / (float)GRAPH_POINTS) + 1;
     int y = display.height() - ((float)(temp_array[dataPoint] - temp_graph_min) * (float)32) / ((float)temp_graph_max - temp_graph_min);
@@ -544,7 +481,7 @@ void drawRHGraphScreen()
   int last_x = 0;
   int last_y = display.height() / 2;
 
-  for (int dataPoint = 0; dataPoint < min(filledSize, GRAPH_POINTS); dataPoint++)
+  for (int dataPoint = 0; dataPoint < min(arrayTail, GRAPH_POINTS); dataPoint++)
   {
     int x = dataPoint * ((float)(display.width() - 2) / (float)GRAPH_POINTS) + 1;
     int y = display.height() - ((float)(rh_array[dataPoint] - rh_graph_min) * (float)32) / ((float)rh_graph_max - rh_graph_min);
@@ -555,11 +492,11 @@ void drawRHGraphScreen()
 }
 
 /**
- * @brief Read Temperature and humidity data from the sensor 
- * 
- * @param currentTemp Pointer to a variable where the temperature data will be stored 
- * @param currentRH   Pointer to a variable where the relative humidity data will be stored 
- */
+   @brief Read Temperature and humidity data from the sensor
+
+   @param currentTemp Pointer to a variable where the temperature data will be stored
+   @param currentRH   Pointer to a variable where the relative humidity data will be stored
+*/
 void readTempAndHumidity(float *currentTemp, float *currentRH)
 {
   static float temp_average = 0;
@@ -598,32 +535,36 @@ void readTempAndHumidity(float *currentTemp, float *currentRH)
 
     if (samplesAveraged > samplesToAverage)
     {
-      // Averaged enough time, put it in an array
+      // Averaged enough samples, put them in the array
       samplesAveraged = 0;
 
-      temp_array[array_head] = uint16_t(temp_average * 100);
-      rh_array[array_head] = uint16_t(rh_average) * 100;
+      if (arrayTail >= GRAPH_POINTS)
+      {
+        arrayTail = GRAPH_POINTS - 1;
 
-      array_head++;
-      if (filledSize < GRAPH_POINTS)
-        filledSize++;
+        // Array is all filled up. Shift contents to make space for the new sample
+        for ( int index = 0; index < (GRAPH_POINTS - 1); index++)
+        {
+          temp_array[index] = temp_array[index + 1];
+          rh_array[index] = rh_array[index + 1];
+        }
+        assert(arrayTail == (GRAPH_POINTS - 1));
+      }
 
-      if (array_head >= GRAPH_POINTS)
-        array_head = 0;
+      temp_array[arrayTail] = uint16_t(temp_average * 100);
+      rh_array[arrayTail] = uint16_t(rh_average) * 100;
+
+      if (arrayTail < (GRAPH_POINTS - 1))
+        arrayTail++;
 
       serialDumpArrays();
 
       // Compute Temp Min and Max
-      getArrayMinMax(temp_array, &temp_graph_min, &temp_graph_max);
-      int range_adjust = (temp_graph_max - temp_graph_min) / 10.0;
-      temp_graph_min -= range_adjust;
-      temp_graph_max += range_adjust;
+      getArrayMinMax(temp_array, arrayTail, GRAPH_ADJUST_PERCENT, 0, &temp_graph_min, &temp_graph_max);
+
 
       // Compute RH Min and Max
-      getArrayMinMax(rh_array, &rh_graph_min, &rh_graph_max);
-      range_adjust = (rh_graph_max - rh_graph_min) / 10.0;
-      rh_graph_min -= range_adjust;
-      rh_graph_max += range_adjust;
+      getArrayMinMax(rh_array, arrayTail, GRAPH_ADJUST_PERCENT, 0, &rh_graph_min, &rh_graph_max);
 
       // Save data to EEPROM so that it is not lost with power
       saveToEEPROM();
@@ -632,11 +573,11 @@ void readTempAndHumidity(float *currentTemp, float *currentRH)
 }
 
 /**
- * @brief Atmega setup code
- * 
- * This code runs first when power is applied to the circuit. It configures the sensor and the OLED display 
- * 
- */
+   @brief Atmega setup code
+
+   This code runs first when power is applied to the circuit. It configures the sensor and the OLED display
+
+*/
 void setup()
 {
   Serial.begin(115200);
@@ -697,9 +638,9 @@ float currrenTemp = 0;
 float currentRH = 0;
 
 /**
- * @brief Atmega loop code. This loop runs contineously till the circuit has power 
- * 
- */
+   @brief Atmega loop code. This loop runs contineously till the circuit has power
+
+*/
 void loop()
 {
   unsigned long newMS = 0;
@@ -727,20 +668,20 @@ void loop()
 
     switch (displayScreen)
     {
-    case 0:
-      drawScreen0(currrenTemp, currentRH);
-      break;
+      case 0:
+        drawScreen0(currrenTemp, currentRH);
+        break;
 
-    case 1:
-      drawTempGraphScreen();
-      break;
+      case 1:
+        drawTempGraphScreen();
+        break;
 
-    case 2:
-      drawRHGraphScreen();
-      break;
+      case 2:
+        drawRHGraphScreen();
+        break;
 
-    default:
-      break;
+      default:
+        break;
     }
 
     display.display(); // send buffer to displayScreen
